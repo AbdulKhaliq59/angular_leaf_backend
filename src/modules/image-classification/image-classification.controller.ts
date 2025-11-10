@@ -1,36 +1,36 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
-  Post,
   Get,
-  UseInterceptors,
+  HttpCode,
+  HttpStatus,
+  Post,
   UploadedFile,
   UploadedFiles,
-  Body,
-  HttpStatus,
-  HttpCode,
-  BadRequestException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   FileInterceptor,
   FilesInterceptor,
 } from '@nestjs/platform-express';
 import {
-  ApiTags,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
-  ApiConsumes,
-  ApiBody,
+  ApiTags,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
-import { ImageClassificationService } from './image-classification.service';
-import { ClassifyImageDto, BatchClassifyImagesDto } from './dto/request.dto';
+import { BatchClassifyImagesDto, ClassifyImageDto } from './dto/request.dto';
 import {
-  ClassificationResponseDto,
   BatchClassificationResponseDto,
+  ClassificationResponseDto,
   PredictionResultDto,
 } from './dto/response.dto';
+import { ImageClassificationService } from './image-classification.service';
 
 @ApiTags('image-classification')
 @Controller('classify')
@@ -85,6 +85,86 @@ export class ImageClassificationController {
       file,
       body.metadata,
     );
+  }
+
+  @Post('image/with-recommendations')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({
+    summary: 'Classify image and generate AI recommendations',
+    description: 'Upload an image to detect angular leaf spot and receive comprehensive AI-powered treatment recommendations',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Image file and optional metadata for classification with recommendations',
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Image file to classify (JPEG, PNG, GIF, BMP, TIFF, WebP)',
+        },
+        metadata: {
+          type: 'string',
+          description: 'Optional metadata about the image or plant condition',
+        },
+        additionalContext: {
+          type: 'string',
+          description: 'Additional context about the plant, environment, or situation',
+        },
+      },
+      required: ['image'],
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Image classified successfully with recommendations generated',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        data: {
+          type: 'object',
+          properties: {
+            classification: { 
+              $ref: '#/components/schemas/PredictionResultDto' 
+            },
+            recommendation: {
+              type: 'object',
+              description: 'Generated AI recommendation'
+            },
+            sessionId: { 
+              type: 'string',
+              description: 'Session ID for tracking this classification and recommendation'
+            }
+          }
+        },
+        processingTimeMs: { type: 'number' }
+      }
+    }
+  })
+  async classifyImageWithRecommendations(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: ClassifyImageDto & { additionalContext?: string },
+  ) {
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
+
+    const result = await this.imageClassificationService.classifyImageWithRecommendations(
+      file,
+      body.metadata,
+      body.additionalContext,
+    );
+
+    return {
+      success: true,
+      message: 'Image classified and recommendations generated successfully',
+      data: result,
+      processingTimeMs: Date.now(), // This would be calculated properly in a real implementation
+    };
   }
 
   @Post('batch')

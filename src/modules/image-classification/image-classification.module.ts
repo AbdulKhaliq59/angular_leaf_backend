@@ -1,20 +1,21 @@
 import { Module } from '@nestjs/common';
-import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+import { CommonModule } from '../../common/common.module';
+import { RecommendationsModule } from '../recommendations/recommendations.module';
 import { ImageClassificationController } from './image-classification.controller';
 import { ImageClassificationService } from './image-classification.service';
 import { MlModelService } from './ml-model.service';
-import { CommonModule } from '../../common/common.module';
 
 @Module({
   imports: [
     CommonModule,
     ConfigModule,
+    RecommendationsModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

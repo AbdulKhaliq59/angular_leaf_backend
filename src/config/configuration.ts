@@ -3,6 +3,15 @@ export const configuration = () => ({
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:4200',
   },
+  database: {
+    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/angular-leaf-api',
+  },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
+    model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+    maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS, 10) || 1000,
+    useMock: process.env.USE_MOCK_AI === 'true' || !process.env.OPENAI_API_KEY,
+  },
   ml: {
     apiUrl: process.env.ML_API_URL || 'http://localhost:5000',
     timeout: parseInt(process.env.ML_API_TIMEOUT, 10) || 30000,

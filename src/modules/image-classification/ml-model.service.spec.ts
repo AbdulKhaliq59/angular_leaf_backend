@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { MlModelService } from '../ml-model.service';
 import { of } from 'rxjs';
+import { MlModelService } from './ml-model.service';
 
 describe('MlModelService', () => {
   let service: MlModelService;

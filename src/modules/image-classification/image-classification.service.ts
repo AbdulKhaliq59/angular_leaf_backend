@@ -1,10 +1,12 @@
-import { Injectable, Logger, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
+import { RecommendationsService } from '../recommendations/recommendations.service';
+import { BatchPredictionResultDto, PredictionResultDto } from './dto/response.dto';
 import { MlModelService, MlPredictionResult } from './ml-model.service';
-import { PredictionResultDto, BatchPredictionResultDto } from './dto/response.dto';
 
 @Injectable()
 export class ImageClassificationService {
@@ -15,6 +17,7 @@ export class ImageClassificationService {
   constructor(
     private readonly mlModelService: MlModelService,
     private readonly configService: ConfigService,
+    private readonly recommendationsService: RecommendationsService,
   ) {
     this.allowedMimeTypes = this.configService.get<string[]>('upload.allowedMimeTypes');
     this.maxFileSize = this.configService.get<number>('upload.maxFileSize');
@@ -41,6 +44,53 @@ export class ImageClassificationService {
     } catch (error) {
       this.logger.error(
         `Failed to classify image ${file.originalname}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Classify an image and generate AI recommendations
+   */
+  async classifyImageWithRecommendations(
+    file: Express.Multer.File,
+    metadata?: string,
+    additionalContext?: string,
+  ): Promise<{
+    classification: PredictionResultDto;
+    recommendation: any;
+    sessionId: string;
+  }> {
+    this.logger.log(`Processing image classification with recommendations for: ${file.originalname}`);
+    
+    // Generate session ID
+    const sessionId = `sess_${uuidv4()}`;
+    
+    try {
+      // First, classify the image
+      const classificationResult = await this.classifyImage(file, metadata);
+      
+      // Generate recommendations based on classification
+      const recommendationResult = await this.recommendationsService.generateRecommendation({
+        classification: classificationResult.predicted_class,
+        confidence: classificationResult.confidence,
+        sessionId,
+        additionalContext,
+      });
+
+      this.logger.log(
+        `Classification and recommendation completed for session: ${sessionId}`,
+      );
+
+      return {
+        classification: classificationResult,
+        recommendation: recommendationResult,
+        sessionId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to classify image with recommendations ${file.originalname}: ${error.message}`,
         error.stack,
       );
       throw error;
