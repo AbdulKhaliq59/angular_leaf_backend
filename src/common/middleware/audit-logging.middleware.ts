@@ -12,37 +12,37 @@ export class AuditLoggingMiddleware implements NestMiddleware {
         const { method, originalUrl, ip, headers } = req;
         const userAgent = headers['user-agent'] || 'unknown';
 
-
         res.on('finish', () => {
             const duration = Date.now() - startTime;
             const { statusCode } = res;
 
+            const logData: Record<string, any> = {
+                timestamp: new Date().toISOString(),
+                method,
+                path: originalUrl,
+                statusCode,
+                duration: `${duration}ms`,
+                ip,
+                userAgent,
+            };
+
             if (req.user) {
-                const logData = {
-                    timestamp: new Date().toISOString(),
-                    userId: req.user.sub,
-                    email: req.user.email,
-                    roles: req.user.roles,
-                    method,
-                    path: originalUrl,
-                    statusCode,
-                    duration: `${duration}ms`,
-                    ip,
-                    userAgent,
-                    cooperativeId: req.user.cooperativeId,
-                };
-
-                if (statusCode >= 500) {
-                    this.logger.error(`Server Error: ${JSON.stringify(logData)}`);
-                } else if (statusCode >= 400) {
-                    this.logger.warn(`Client Error: ${JSON.stringify(logData)}`);
-                } else {
-                    this.logger.log(`Request: ${JSON.stringify(logData)}`);
-                }
-
-                // TODO: Store in database for persistent audit trail
-                // await this.auditLogRepository.create(logData);
+                logData.userId = req.user.sub;
+                logData.email = req.user.email;
+                logData.roles = req.user.roles;
+                logData.cooperativeId = req.user.cooperativeId;
             }
+
+            if (statusCode >= 500) {
+                this.logger.error(JSON.stringify(logData));
+            } else if (statusCode >= 400) {
+                this.logger.warn(JSON.stringify(logData));
+            } else {
+                this.logger.log(JSON.stringify(logData));
+            }
+
+            // TODO: persist in DB if required
+            // await this.auditLogRepository.create(logData);
         });
 
         next();

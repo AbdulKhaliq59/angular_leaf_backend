@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { UserRole } from '../../common/enums/user-role.enum';
+import ms from 'ms';
 
 
 @Injectable()
@@ -171,19 +172,14 @@ export class AuthService {
 
 
     private parseExpirationToSeconds(expiration: string): number {
-        const units: { [key: string]: number } = {
-            s: 1,
-            m: 60,
-            h: 3600,
-            d: 86400,
-        };
-
-        const match = expiration.match(/^(\d+)([smhd])$/);
-        if (!match) {
-            return 3600;
+        if (!expiration || typeof expiration !== 'string') {
+            throw new Error('Expiration must be a string');
         }
+        const milliseconds = ms(expiration as ms.StringValue);
 
-        const [, value, unit] = match;
-        return parseInt(value) * units[unit];
+        if (!milliseconds || milliseconds <= 0) {
+            throw new Error('Invalid expiration format');
+        }
+        return Math.floor(milliseconds / 1000);
     }
 }

@@ -45,7 +45,13 @@ async function seedAdmin() {
 
         // Create admin user
         console.log('🔐 Hashing password...');
-        const hashedPassword = await bcrypt.hash('AdminPass123!', saltRounds);
+        const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+        if (!adminPassword) {
+            console.error("Error: DEFAULT_ADMIN_PASSWORD must be set in the .env file");
+            await client.close();
+            process.exit(1);
+        }
+        const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
         console.log('✅ Password hashed\n');
 
         const adminUser: AdminUser = {
@@ -67,7 +73,7 @@ async function seedAdmin() {
         console.log('🎉 ADMIN USER CREATED SUCCESSFULLY');
         console.log('═══════════════════════════════════════════');
         console.log('📧 Email:    admin@example.com');
-        console.log('🔑 Password: AdminPass123!');
+        console.log('🔑 Password: [Set via DEFAULT_ADMIN_PASSWORD in .env]');
         console.log('👤 Role:     admin');
         console.log('═══════════════════════════════════════════\n');
 
@@ -80,8 +86,8 @@ async function seedAdmin() {
 
         process.exit(0);
     } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Error seeding admin user:', errorMessage);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('❌ Error seeding admin user:', errorMessage);
         console.error('   1. Make sure MongoDB is running');
         console.error('   2. Check MONGODB_URI in .env file');
         console.error('   3. Verify database connection settings\n');
