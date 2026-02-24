@@ -16,6 +16,7 @@ import {
   FilesInterceptor,
 } from '@nestjs/platform-express';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
@@ -31,21 +32,28 @@ import {
   PredictionResultDto,
 } from './dto/response.dto';
 import { ImageClassificationService } from './image-classification.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums/user-role.enum';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('image-classification')
 @Controller('classify')
-@UseGuards(ThrottlerGuard)
+@UseGuards(ThrottlerGuard, JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class ImageClassificationController {
   constructor(
     private readonly imageClassificationService: ImageClassificationService,
   ) {}
 
   @Post('image')
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({
     summary: 'Classify a single image for angular leaf spot detection',
-    description: 'Upload an image to detect if it shows signs of angular leaf spot disease',
+    description: 'Upload an image to detect if it shows signs of angular leaf spot disease. Accessible by farmers, managers, and admins.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -88,11 +96,12 @@ export class ImageClassificationController {
   }
 
   @Post('image/with-recommendations')
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({
     summary: 'Classify image and generate AI recommendations',
-    description: 'Upload an image to detect angular leaf spot and receive comprehensive AI-powered treatment recommendations',
+    description: 'Upload an image to detect angular leaf spot and receive comprehensive AI-powered treatment recommendations. Accessible by farmers, managers, and admins.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -168,11 +177,12 @@ export class ImageClassificationController {
   }
 
   @Post('batch')
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FilesInterceptor('images', 10)) // Max 10 files
   @ApiOperation({
     summary: 'Classify multiple images in batch',
-    description: 'Upload multiple images to detect angular leaf spot disease in batch',
+    description: 'Upload multiple images to detect angular leaf spot disease in batch. Accessible by farmers, managers, and admins.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -218,9 +228,10 @@ export class ImageClassificationController {
   }
 
   @Get('health')
+  @Public()
   @ApiOperation({
     summary: 'Check service health',
-    description: 'Check the health status of the image classification service',
+    description: 'Check the health status of the image classification service. Public endpoint.',
   })
   @ApiResponse({
     status: 200,
@@ -257,9 +268,10 @@ export class ImageClassificationController {
   }
 
   @Get('stats')
+  @Public()
   @ApiOperation({
     summary: 'Get classification statistics',
-    description: 'Get statistics and information about the ML model',
+    description: 'Get statistics and information about the ML model. Public endpoint.',
   })
   @ApiResponse({
     status: 200,
@@ -274,9 +286,10 @@ export class ImageClassificationController {
   }
 
   @Get('supported-formats')
+  @Public()
   @ApiOperation({
     summary: 'Get supported image formats',
-    description: 'Get list of supported image formats and upload limits',
+    description: 'Get list of supported image formats and upload limits. Public endpoint.',
   })
   @ApiResponse({
     status: 200,

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {
     ApiBadRequestResponse,
+    ApiBearerAuth,
     ApiInternalServerErrorResponse,
     ApiNotFoundResponse,
     ApiOperation,
@@ -33,17 +34,24 @@ import {
     RecommendationResponseDto,
 } from './dto/response.dto';
 import { RecommendationsService } from './recommendations.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums/user-role.enum';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('recommendations')
 @Controller('recommendations')
-@UseGuards(ThrottlerGuard)
+@UseGuards(ThrottlerGuard, JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class RecommendationsController {
   constructor(private readonly recommendationsService: RecommendationsService) {}
 
   @Post('generate')
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Generate AI-powered recommendations',
-    description: 'Generate comprehensive treatment and prevention recommendations based on plant disease classification results using OpenAI.',
+    description: 'Generate comprehensive treatment and prevention recommendations based on plant disease classification results using OpenAI. Accessible by farmers, managers, and admins.',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -52,6 +60,14 @@ export class RecommendationsController {
   })
   @ApiBadRequestResponse({
     description: 'Invalid request data or AI service error',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized - authentication required',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Forbidden - insufficient permissions',
   })
   @ApiInternalServerErrorResponse({
     description: 'Internal server error during recommendation generation',
@@ -63,9 +79,10 @@ export class RecommendationsController {
   }
 
   @Get()
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get recommendations',
-    description: 'Retrieve recommendations with optional filtering by session ID or classification type.',
+    description: 'Retrieve recommendations with optional filtering by session ID or classification type. Accessible by farmers, managers, and admins.',
   })
   @ApiQuery({
     name: 'sessionId',
@@ -94,6 +111,14 @@ export class RecommendationsController {
     description: 'Recommendations retrieved successfully',
     type: RecommendationListResponseDto,
   })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized - authentication required',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiBadRequestResponse({
     description: 'Invalid query parameters',
   })
@@ -104,22 +129,32 @@ export class RecommendationsController {
   }
 
   @Get('analytics')
+  @Roles(UserRole.MANAGER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get recommendations analytics',
-    description: 'Retrieve analytics and statistics about generated recommendations.',
+    description: 'Retrieve analytics and statistics about generated recommendations. Accessible by managers and admins.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Analytics retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized - authentication required',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Forbidden - manager or admin role required',
   })
   async getAnalytics() {
     return this.recommendationsService.getAnalytics();
   }
 
   @Get('health')
+  @Public()
   @ApiOperation({
     summary: 'Check recommendations service health',
-    description: 'Check the health status of the recommendations service including database and AI service connectivity.',
+    description: 'Check the health status of the recommendations service including database and AI service connectivity. Public endpoint.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -130,9 +165,10 @@ export class RecommendationsController {
   }
 
   @Get(':id')
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get recommendation by ID',
-    description: 'Retrieve a specific recommendation by its unique identifier.',
+    description: 'Retrieve a specific recommendation by its unique identifier. Accessible by farmers, managers, and admins.',
   })
   @ApiParam({
     name: 'id',
@@ -142,6 +178,14 @@ export class RecommendationsController {
     status: HttpStatus.OK,
     description: 'Recommendation retrieved successfully',
     type: RecommendationResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized - authentication required',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Forbidden - insufficient permissions',
   })
   @ApiNotFoundResponse({
     description: 'Recommendation not found',
@@ -156,9 +200,10 @@ export class RecommendationsController {
   }
 
   @Patch(':id/feedback')
+  @Roles(UserRole.FARMER, UserRole.MANAGER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Submit user feedback',
-    description: 'Submit user rating and feedback for a specific recommendation.',
+    description: 'Submit user rating and feedback for a specific recommendation. Accessible by farmers, managers, and admins.',
   })
   @ApiParam({
     name: 'id',
@@ -167,6 +212,14 @@ export class RecommendationsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Feedback submitted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized - authentication required',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Forbidden - insufficient permissions',
   })
   @ApiNotFoundResponse({
     description: 'Recommendation not found',

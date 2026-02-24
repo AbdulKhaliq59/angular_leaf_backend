@@ -3,7 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
-import * as compression from 'compression';
+import compression = require('compression');
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -14,20 +14,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // Security
   app.use(helmet());
   app.use(compression());
 
-  // CORS
   app.enableCors({
     origin: configService.get('CORS_ORIGIN', 'http://localhost:4200'),
     credentials: true,
   });
 
-  // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // Global pipes
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -39,24 +36,38 @@ async function bootstrap() {
     }),
   );
 
-  // Global filters
+
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Global interceptors
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
     new TransformInterceptor(),
   );
 
-  // Swagger documentation
+
   const config = new DocumentBuilder()
     .setTitle('Angular Leaf Classification API')
     .setDescription(
-      'API for detecting angular leaf spot disease using machine learning',
+      'API for detecting angular leaf spot disease using machine learning and AI-powered recommendations. ' +
+      'Includes JWT authentication with role-based access control.',
     )
     .setVersion('1.0')
-    .addTag('image-classification')
-    .addBearerAuth()
+    .addTag('Authentication', 'User authentication and authorization')
+    .addTag('Users', 'User management (admin only)')
+    .addTag('image-classification', 'ML-powered image classification')
+    .addTag('recommendations', 'AI-powered recommendations')
+    .addTag('health', 'API health monitoring')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
