@@ -7,6 +7,8 @@ import { join } from 'path';
 
 import { CommonModule } from './common/common.module';
 import { configuration } from './config/configuration';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 import { HealthModule } from './modules/health/health.module';
 import { ImageClassificationModule } from './modules/image-classification/image-classification.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
@@ -45,8 +47,12 @@ import { RecommendationsModule } from './modules/recommendations/recommendations
       serveRoot: '/uploads',
     }),
 
-    // Feature modules
+    // Core modules
     CommonModule,
+    AuthModule,
+    UsersModule,
+
+    // Feature modules
     ImageClassificationModule,
     HealthModule,
     RecommendationsModule,
